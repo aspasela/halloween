@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Costume Contest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: masthead, then a two-column stage — entry form beside a ranked grid of contestant tags. Single dark "night" world by design. */
+:root {
+  --night: #16111d;
+  --crypt: #221a2c;
+  --crypt-2: #2d2339;
+  --bone: #efe6d6;
+  --ash: #a89cb3;
+  --pumpkin: #f07a22;
+  --pumpkin-ink: #1b0f05;
+  --moss: #8fbf6a;
+  --line: #3b2f49;
+  --display: "Pirata One", "UnifrakturCook", Georgia, serif;
+  --body: "Work Sans", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--night);
+  background-image: radial-gradient(ellipse 80% 50% at 85% -10%, rgba(240,122,34,.16), transparent 60%);
+  color: var(--bone);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-inline: 16px;
+  padding-block: 28px 56px;
+  min-height: 100vh;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 28px; }
+header { display: grid; gap: 6px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--pumpkin); }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(44px, 8vw, 76px); line-height: .95; margin: 0; text-wrap: balance; }
+.lede { color: var(--ash); margin: 4px 0 0; max-width: 60ch; }
+.status { font-size: 13px; color: var(--ash); min-height: 1.5em; }
+.status.warn { color: var(--pumpkin); }
+
+.stage { display: grid; grid-template-columns: 300px 1fr; gap: 28px; align-items: start; }
+@media (max-width: 760px) { .stage { grid-template-columns: 1fr; } }
+
+.panel { background: var(--crypt); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 14px; }
+.panel h2 { font-family: var(--display); font-weight: 400; font-size: 28px; margin: 0; line-height: 1; }
+.panel p { margin: 0; color: var(--ash); font-size: 13px; }
+label { display: grid; gap: 6px; font-size: 13px; font-weight: 500; }
+input, textarea {
+  font: inherit; color: var(--bone); background: var(--night);
+  border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; width: 100%;
+}
+textarea { resize: vertical; min-height: 64px; }
+input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--pumpkin); outline-offset: 2px; }
+button { font: inherit; cursor: pointer; border-radius: 6px; }
+.btn { background: var(--pumpkin); color: var(--pumpkin-ink); border: 0; font-weight: 600; padding: 11px 16px; }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.hint { font-size: 12px; color: var(--ash); }
+
+.board-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 14px; }
+.board-head h2 { font-family: var(--display); font-weight: 400; font-size: 34px; margin: 0; line-height: 1; }
+.board-head .meta { font-family: var(--mono); font-size: 12px; color: var(--ash); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+
+/* Each contestant is a numbered costume tag */
+.tag {
+  position: relative; background: var(--crypt); border: 1px solid var(--line); border-radius: 10px;
+  padding: 18px 18px 16px; display: grid; gap: 10px; min-width: 0;
+}
+.tag.mine-vote { border-color: var(--pumpkin); box-shadow: 0 0 0 1px var(--pumpkin), 0 10px 30px -12px rgba(240,122,34,.45); }
+.tag-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.num { font-family: var(--mono); font-size: 12px; color: var(--ash); letter-spacing: .06em; }
+.lead { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--pumpkin-ink); background: var(--pumpkin); padding: 2px 8px; border-radius: 99px; }
+.costume { font-family: var(--display); font-size: 28px; line-height: 1.05; margin: 0; overflow-wrap: anywhere; }
+.who { font-size: 13px; color: var(--ash); overflow-wrap: anywhere; }
+.who b { color: var(--bone); font-weight: 600; }
+.desc { font-size: 13px; color: var(--bone); opacity: .85; margin: 0; overflow-wrap: anywhere; }
+.tally-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.tally { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 22px; min-width: 0; }
+.tally svg { display: block; }
+.count { font-family: var(--mono); font-size: 13px; color: var(--ash); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vote { background: transparent; color: var(--bone); border: 1px solid var(--line); padding: 7px 12px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.vote:hover:not(:disabled) { border-color: var(--pumpkin); color: var(--pumpkin); }
+.vote.on { background: var(--pumpkin); color: var(--pumpkin-ink); border-color: var(--pumpkin); }
+.vote:disabled { opacity: .4; cursor: not-allowed; }
+.remove { background: none; border: 0; color: var(--ash); font-size: 12px; padding: 0; text-decoration: underline; justify-self: start; }
+.remove:hover { color: var(--pumpkin); }
+.confirm { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--ash); flex-wrap: wrap; }
+.confirm button { font-size: 12px; padding: 4px 10px; border: 1px solid var(--line); background: var(--crypt-2); color: var(--bone); }
+.confirm .yes { border-color: var(--pumpkin); color: var(--pumpkin); }
+
+.empty { border: 1px dashed var(--line); border-radius: 10px; padding: 36px 20px; text-align: center; color: var(--ash); display: grid; gap: 6px; }
+.empty strong { font-family: var(--display); font-weight: 400; font-size: 26px; color: var(--bone); }
+@media (prefers-reduced-motion: no-preference) { .tag { transition: border-color .2s, box-shadow .2s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Halloween · Best Costume</span>
+    <h1>The Costume Contest</h1>
+    <p class="lede">Add yourself to the lineup, then cast your vote for the best costume. Everyone gets one vote, and you can move it until the judging ends.</p>
+    <div class="status" id="status">Connecting to the ballot box…</div>
+  </header>
+
+  <div class="stage">
+    <form class="panel" id="entry-form" autocomplete="off">
+      <h2>Enter the contest</h2>
+      <p>Your entry appears on the board for everyone.</p>
+      <label for="f-name">Your name
+        <input id="f-name" maxlength="60" required placeholder="e.g. Morticia R.">
+      </label>
+      <label for="f-costume">Costume
+        <input id="f-costume" maxlength="80" required placeholder="e.g. The Headless Horseman">
+      </label>
+      <label for="f-desc">A line about it <span class="hint">(optional)</span>
+        <textarea id="f-desc" maxlength="200" placeholder="Hand-sewn cape, pumpkin carried all night."></textarea>
+      </label>
+      <button class="btn" id="f-submit" type="submit" disabled>Add my costume</button>
+      <span class="hint" id="f-msg"></span>
+    </form>
+
+    <section>
+      <div class="board-head">
+        <h2>The lineup</h2>
+        <span class="meta" id="meta"></span>
+      </div>
+      <div class="grid" id="grid">
+        <div class="empty" style="grid-column: 1 / -1">
+          <strong>No costumes yet</strong>
+          <span>Entries show up here as people add them. Be the first using the form.</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const statusEl = $("status");
+  const setStatus = (t, warn) => { statusEl.textContent = t; statusEl.classList.toggle("warn", !!warn); };
+
+  const cfg = window.CONTEST_CONFIG || {};
+  if (!window.supabase || !cfg.supabaseUrl || cfg.supabaseUrl.includes("YOUR-PROJECT")) {
+    setStatus("Setup needed: add your Supabase URL and key to config.js.", true);
+    return;
+  }
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+
+  let uid = null, canWrite = false;
+  let entries = [];            // rows from public.entries
+  const votes = new Map();     // voter_id -> entry_id
+  let pendingRemove = null;
+  let busy = false;
+
+  // Each browser gets an anonymous session, which is what limits it to one vote.
+  try {
+    const { data: s } = await sb.auth.getSession();
+    if (s.session) uid = s.session.user.id;
+    else {
+      const { data, error } = await sb.auth.signInAnonymously();
+      if (error) throw error;
+      uid = data.user.id;
+    }
+    canWrite = true;
+  } catch (e) {
+    setStatus("Voting is off: turn on anonymous sign-ins in Supabase (Authentication → Providers).", true);
+  }
+  $("f-submit").disabled = !canWrite;
+
+  async function loadAll() {
+    const [en, vo] = await Promise.all([
+      sb.from("entries").select("id,name,costume,description,created_by,created_at"),
+      sb.from("votes").select("voter_id,entry_id"),
+    ]);
+    if (en.error || vo.error) { setStatus("Couldn't load the lineup. Check the Supabase setup and reload.", true); return; }
+    entries = en.data;
+    votes.clear();
+    vo.data.forEach(v => votes.set(v.voter_id, v.entry_id));
+    if (canWrite && statusEl.textContent.startsWith("Connecting")) setStatus("");
+    render();
+  }
+
+  // Live updates: refetch on any change (small tables), plus a slow poll as a safety net.
+  let t = null;
+  const refresh = () => { clearTimeout(t); t = setTimeout(loadAll, 150); };
+  sb.channel("contest")
+    .on("postgres_changes", { event: "*", schema: "public", table: "entries" }, refresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, refresh)
+    .subscribe();
+  setInterval(loadAll, 20000);
+  await loadAll();
+
+  function tallySvg(n) {
+    const frag = document.createDocumentFragment();
+    const groups = Math.floor(n / 5), rest = n % 5;
+    const make = (k) => {
+      const w = k === 5 ? 30 : 6 * k + 2;
+      const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      s.setAttribute("width", w); s.setAttribute("height", 20); s.setAttribute("viewBox", `0 0 ${w} 20`);
+      s.setAttribute("aria-hidden", "true");
+      let p = "";
+      for (let i = 0; i < Math.min(k, 4); i++) p += `<line x1="${4 + i * 6}" y1="2" x2="${4 + i * 6}" y2="18" stroke="#efe6d6" stroke-width="2" stroke-linecap="round"/>`;
+      if (k === 5) p += `<line x1="1" y1="15" x2="27" y2="5" stroke="#f07a22" stroke-width="2" stroke-linecap="round"/>`;
+      s.innerHTML = p;
+      return s;
+    };
+    for (let i = 0; i < groups; i++) frag.appendChild(make(5));
+    if (rest) frag.appendChild(make(rest));
+    return frag;
+  }
+
+  function render() {
+    const counts = new Map();
+    votes.forEach(e => counts.set(e, (counts.get(e) || 0) + 1));
+    const myVote = uid ? votes.get(uid) : null;
+    const ts = (e) => Date.parse(e.created_at) || 0;
+    const byAge = [...entries].sort((a, b) => ts(a) - ts(b));
+    const numberOf = new Map(byAge.map((e, i) => [e.id, i + 1]));
+    const ranked = [...entries].sort((a, b) => (counts.get(b.id) || 0) - (counts.get(a.id) || 0) || ts(a) - ts(b));
+    const top = ranked.length ? (counts.get(ranked[0].id) || 0) : 0;
+    const totalVotes = [...votes.values()].filter(e => numberOf.has(e)).length;
+
+    $("meta").textContent = entries.length
+      ? `${entries.length} ${entries.length === 1 ? "costume" : "costumes"} · ${totalVotes} ${totalVotes === 1 ? "vote" : "votes"}`
+      : "";
+
+    const grid = $("grid");
+    grid.replaceChildren();
+    if (!entries.length) {
+      const e = document.createElement("div");
+      e.className = "empty"; e.style.gridColumn = "1 / -1";
+      e.innerHTML = "<strong>No costumes yet</strong><span>Entries show up here as people add them. Be the first using the form.</span>";
+      grid.appendChild(e);
+      return;
+    }
+
+    for (const en of ranked) {
+      const c = counts.get(en.id) || 0;
+      const mine = myVote === en.id;
+      const tag = document.createElement("article");
+      tag.className = "tag" + (mine ? " mine-vote" : "");
+
+      const topRow = document.createElement("div"); topRow.className = "tag-top";
+      const num = document.createElement("span"); num.className = "num";
+      num.textContent = "No. " + String(numberOf.get(en.id)).padStart(2, "0");
+      topRow.appendChild(num);
+      if (c > 0 && c === top) {
+        const lead = document.createElement("span"); lead.className = "lead"; lead.textContent = "Leading";
+        topRow.appendChild(lead);
+      }
+      tag.appendChild(topRow);
+
+      const h = document.createElement("h3"); h.className = "costume"; h.textContent = en.costume;
+      tag.appendChild(h);
+      const who = document.createElement("div"); who.className = "who";
+      who.append("worn by ");
+      const b = document.createElement("b"); b.textContent = en.name; who.appendChild(b);
+      tag.appendChild(who);
+      if (en.description) { const d = document.createElement("p"); d.className = "desc"; d.textContent = en.description; tag.appendChild(d); }
+
+      const row = document.createElement("div"); row.className = "tally-row";
+      const left = document.createElement("div"); left.style.cssText = "display:grid;gap:4px;min-width:0";
+      const tally = document.createElement("div"); tally.className = "tally";
+      if (c) tally.appendChild(tallySvg(c));
+      const cnt = document.createElement("span"); cnt.className = "count"; cnt.textContent = c + (c === 1 ? " vote" : " votes");
+      left.append(tally, cnt);
+      const btn = document.createElement("button"); btn.type = "button";
+      btn.className = "vote" + (mine ? " on" : "");
+      btn.textContent = mine ? "Your vote ✓" : (myVote ? "Move vote here" : "Vote");
+      btn.title = mine ? "Click to withdraw your vote" : "";
+      btn.disabled = !canWrite || busy;
+      btn.setAttribute("aria-pressed", mine ? "true" : "false");
+      btn.onclick = () => castVote(mine ? null : en.id);
+      row.append(left, btn);
+      tag.appendChild(row);
+
+      if (canWrite && en.created_by === uid) {
+        if (pendingRemove === en.id) {
+          const cf = document.createElement("div"); cf.className = "confirm";
+          cf.append("Remove your entry?");
+          const yes = document.createElement("button"); yes.type = "button"; yes.className = "yes"; yes.textContent = "Remove";
+          yes.onclick = () => removeEntry(en.id);
+          const no = document.createElement("button"); no.type = "button"; no.textContent = "Keep";
+          no.onclick = () => { pendingRemove = null; render(); };
+          cf.append(yes, no); tag.appendChild(cf);
+        } else {
+          const rm = document.createElement("button"); rm.type = "button"; rm.className = "remove"; rm.textContent = "Remove my entry";
+          rm.onclick = () => { pendingRemove = en.id; render(); };
+          tag.appendChild(rm);
+        }
+      }
+      grid.appendChild(tag);
+    }
+  }
+
+  async function castVote(entryId) {
+    if (!uid || busy) return;
+    busy = true; render();
+    const { error } = entryId
+      ? await sb.from("votes").upsert({ voter_id: uid, entry_id: entryId, updated_at: new Date().toISOString() })
+      : await sb.from("votes").delete().eq("voter_id", uid);
+    setStatus(error ? "Couldn't save your vote. Try again in a moment." : (entryId ? "Vote saved." : "Vote withdrawn."), !!error);
+    busy = false;
+    await loadAll();
+  }
+
+  async function removeEntry(id) {
+    pendingRemove = null;
+    const { error } = await sb.from("entries").delete().eq("id", id);
+    setStatus(error ? "Couldn't remove that entry. Try again." : "Entry removed.", !!error);
+    await loadAll();
+  }
+
+  $("entry-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (!canWrite) return;
+    const name = $("f-name").value.trim(), costume = $("f-costume").value.trim(), description = $("f-desc").value.trim();
+    if (!name || !costume) { $("f-msg").textContent = "Add both your name and your costume."; return; }
+    $("f-submit").disabled = true; $("f-msg").textContent = "Adding…";
+    const { error } = await sb.from("entries").insert({ name, costume, description, created_by: uid });
+    if (error) $("f-msg").textContent = "Couldn't add your entry. Try again.";
+    else { $("entry-form").reset(); $("f-msg").textContent = "You're in the lineup."; }
+    $("f-submit").disabled = false;
+    await loadAll();
+  });
+})();
+</script>
+</body>
+</html>
