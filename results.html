@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Costume Contest Results</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Work+Sans:wght@400;600&display=swap">
+<style>
+:root {
+  --night: #16111d; --crypt: #221a2c; --bone: #efe6d6; --ash: #a89cb3;
+  --pumpkin: #f07a22; --line: #3b2f49;
+  --display: "Pirata One", Georgia, serif;
+  --body: "Work Sans", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--night); color: var(--bone); font-family: var(--body); font-size: 16px; padding-inline: 16px; padding-block: 32px; }
+.wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 16px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: 48px; line-height: 1; margin: 0; }
+.meta { color: var(--ash); font-size: 14px; }
+ol { list-style: none; margin: 0; padding: 0; background: var(--crypt); border: 1px solid var(--line); border-radius: 10px; }
+li { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-top: 1px solid var(--line); }
+li:first-child { border-top: 0; }
+.rank { font-family: var(--display); font-size: 26px; width: 28px; text-align: center; color: var(--ash); }
+li.first .rank, li.first .v { color: var(--pumpkin); }
+.info { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.info b { display: block; font-weight: 600; }
+.info span { color: var(--ash); font-size: 14px; }
+.v { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.empty { color: var(--ash); justify-content: center; padding: 32px; }
+a { color: var(--ash); font-size: 14px; }
+a:hover { color: var(--pumpkin); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Results</h1>
+  <div class="meta" id="meta">Loading…</div>
+  <ol id="list"><li class="empty">No costumes yet.</li></ol>
+  <a href="./">← Back to voting</a>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(() => {
+  const cfg = window.CONTEST_CONFIG || {};
+  const meta = document.getElementById("meta"), list = document.getElementById("list");
+  if (!window.supabase || !cfg.supabaseUrl || cfg.supabaseUrl.includes("YOUR-PROJECT")) {
+    meta.textContent = "Setup needed: add your Supabase URL and key to config.js."; return;
+  }
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+
+  async function load() {
+    const [en, vo] = await Promise.all([
+      sb.from("entries").select("id,name,costume,created_at"),
+      sb.from("votes").select("entry_id"),
+    ]);
+    if (en.error || vo.error) { meta.textContent = "Couldn't load results. Reload to try again."; return; }
+    const counts = {};
+    vo.data.forEach(v => counts[v.entry_id] = (counts[v.entry_id] || 0) + 1);
+    const rows = en.data.map(e => ({ ...e, v: counts[e.id] || 0 }))
+      .sort((a, b) => b.v - a.v || Date.parse(a.created_at) - Date.parse(b.created_at));
+    const total = rows.reduce((s, r) => s + r.v, 0);
+    meta.textContent = `${rows.length} costumes · ${total} votes · updates live`;
+
+    list.replaceChildren();
+    if (!rows.length) { list.innerHTML = '<li class="empty">No costumes yet.</li>'; return; }
+    let rank = 0, prev = null;
+    rows.forEach((r, i) => {
+      if (r.v !== prev) { rank = i + 1; prev = r.v; }
+      const li = document.createElement("li");
+      if (rank === 1 && r.v > 0) li.className = "first";
+      li.innerHTML = '<span class="rank"></span><div class="info"><b></b><span></span></div><span class="v"></span>';
+      li.querySelector(".rank").textContent = rank;
+      li.querySelector("b").textContent = r.costume;
+      li.querySelector(".info span").textContent = "worn by " + r.name;
+      li.querySelector(".v").textContent = r.v + (r.v === 1 ? " vote" : " votes");
+      list.append(li);
+    });
+  }
+
+  let t;
+  const refresh = () => { clearTimeout(t); t = setTimeout(load, 150); };
+  sb.channel("results")
+    .on("postgres_changes", { event: "*", schema: "public", table: "entries" }, refresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, refresh)
+    .subscribe();
+  setInterval(load, 15000);
+  load();
+})();
+</script>
+</body>
+</html>
