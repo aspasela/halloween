@@ -4,39 +4,60 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Costume Contest Results</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Work+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Work+Sans:wght@400;600;700&display=swap">
 <style>
 :root {
   --night: #16111d; --crypt: #221a2c; --bone: #efe6d6; --ash: #a89cb3;
-  --pumpkin: #f07a22; --line: #3b2f49;
+  --pumpkin: #f07a22; --pumpkin-ink: #1b0f05; --track: #2d2339; --line: #3b2f49;
   --display: "Pirata One", Georgia, serif;
   --body: "Work Sans", system-ui, sans-serif;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--night); color: var(--bone); font-family: var(--body); font-size: 16px; padding-inline: 16px; padding-block: 32px; }
-.wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 16px; }
+.wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 20px; }
 h1 { font-family: var(--display); font-weight: 400; font-size: 48px; line-height: 1; margin: 0; }
-.meta { color: var(--ash); font-size: 14px; }
-ol { list-style: none; margin: 0; padding: 0; background: var(--crypt); border: 1px solid var(--line); border-radius: 10px; }
-li { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-top: 1px solid var(--line); }
-li:first-child { border-top: 0; }
-.rank { font-family: var(--display); font-size: 26px; width: 28px; text-align: center; color: var(--ash); }
-li.first .rank, li.first .v { color: var(--pumpkin); }
-.info { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.info b { display: block; font-weight: 600; }
-.info span { color: var(--ash); font-size: 14px; }
-.v { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.empty { color: var(--ash); justify-content: center; padding: 32px; }
-a { color: var(--ash); font-size: 14px; }
-a:hover { color: var(--pumpkin); }
+
+/* Headline numbers */
+.stats { display: flex; gap: 32px; flex-wrap: wrap; }
+.stat b { display: block; font-size: 56px; font-weight: 700; line-height: 1; color: var(--pumpkin); font-variant-numeric: tabular-nums; }
+.stat span { color: var(--ash); font-size: 14px; }
+
+/* Bar chart, most votes first */
+.chart { background: var(--crypt); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 14px; }
+#rows { display: grid; gap: 18px; }
+.chart h2 { margin: 0; font-size: 14px; font-weight: 600; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
+.row { display: grid; grid-template-columns: minmax(0, 200px) 1fr; gap: 6px 14px; align-items: center; position: relative; }
+.label { min-width: 0; overflow-wrap: anywhere; }
+.label b { display: block; font-weight: 600; }
+.label span { color: var(--ash); font-size: 13px; }
+.plot { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.track { flex: 1; height: 26px; background: var(--track); border-radius: 0 4px 4px 0; position: relative; }
+.bar { height: 100%; width: 0; background: var(--pumpkin); opacity: .55; border-radius: 0 4px 4px 0; min-width: 2px; }
+.row.first .bar { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) { .bar { transition: width .6s ease; } }
+.count { font-size: 22px; font-weight: 700; min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
+.row.first .count { color: var(--pumpkin); }
+.chip { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; background: var(--pumpkin); color: var(--pumpkin-ink); padding: 1px 7px; border-radius: 99px; vertical-align: middle; }
+.row:hover .bar { opacity: 1; }
+.tip { position: absolute; right: 0; top: -30px; background: var(--bone); color: var(--night); font-size: 13px; padding: 3px 8px; border-radius: 4px; pointer-events: none; white-space: nowrap; }
+@media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+.empty { color: var(--ash); text-align: center; padding: 24px; }
+.meta { color: var(--ash); font-size: 13px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Results</h1>
+  <div class="stats">
+    <div class="stat"><b id="total">–</b><span>votes cast</span></div>
+    <div class="stat"><b id="costumes">–</b><span>costumes</span></div>
+  </div>
+  <section class="chart" aria-label="Votes per costume, most votes first">
+    <h2>Votes per costume</h2>
+    <div id="rows"><div class="empty">No costumes yet.</div></div>
+  </section>
   <div class="meta" id="meta">Loading…</div>
-  <ol id="list"><li class="empty">No costumes yet.</li></ol>
 </div>
 
 <script src="config.js"></script>
@@ -44,9 +65,9 @@ a:hover { color: var(--pumpkin); }
 <script>
 (() => {
   const cfg = window.CONTEST_CONFIG || {};
-  const meta = document.getElementById("meta"), list = document.getElementById("list");
+  const $ = (id) => document.getElementById(id);
   if (!window.supabase || !cfg.supabaseUrl || cfg.supabaseUrl.includes("YOUR-PROJECT")) {
-    meta.textContent = "Setup needed: add your Supabase URL and key to config.js."; return;
+    $("meta").textContent = "Setup needed: add your Supabase URL and key to config.js."; return;
   }
   const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
 
@@ -55,27 +76,39 @@ a:hover { color: var(--pumpkin); }
       sb.from("entries").select("id,name,costume,created_at"),
       sb.from("votes").select("entry_id"),
     ]);
-    if (en.error || vo.error) { meta.textContent = "Couldn't load results. Reload to try again."; return; }
+    if (en.error || vo.error) { $("meta").textContent = "Couldn't load results. Reload to try again."; return; }
     const counts = {};
     vo.data.forEach(v => counts[v.entry_id] = (counts[v.entry_id] || 0) + 1);
     const rows = en.data.map(e => ({ ...e, v: counts[e.id] || 0 }))
       .sort((a, b) => b.v - a.v || Date.parse(a.created_at) - Date.parse(b.created_at));
     const total = rows.reduce((s, r) => s + r.v, 0);
-    meta.textContent = `${rows.length} costumes · ${total} votes · updates live`;
+    const max = rows.length ? rows[0].v : 0;
 
-    list.replaceChildren();
-    if (!rows.length) { list.innerHTML = '<li class="empty">No costumes yet.</li>'; return; }
-    let rank = 0, prev = null;
-    rows.forEach((r, i) => {
-      if (r.v !== prev) { rank = i + 1; prev = r.v; }
-      const li = document.createElement("li");
-      if (rank === 1 && r.v > 0) li.className = "first";
-      li.innerHTML = '<span class="rank"></span><div class="info"><b></b><span></span></div><span class="v"></span>';
-      li.querySelector(".rank").textContent = rank;
-      li.querySelector("b").textContent = r.costume;
-      li.querySelector(".info span").textContent = "worn by " + r.name;
-      li.querySelector(".v").textContent = r.v + (r.v === 1 ? " vote" : " votes");
-      list.append(li);
+    $("total").textContent = total;
+    $("costumes").textContent = rows.length;
+    $("meta").textContent = "Updates live · last checked " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+    const box = $("rows"); box.replaceChildren();
+    if (!rows.length) { box.innerHTML = '<div class="empty">No costumes yet.</div>'; return; }
+    rows.forEach(r => {
+      const row = document.createElement("div");
+      row.className = "row" + (r.v > 0 && r.v === max ? " first" : "");
+      row.innerHTML = '<div class="label"><b></b><span></span></div><div class="plot"><div class="track"><div class="bar"></div></div><span class="count"></span></div>';
+      const b = row.querySelector(".label b");
+      b.textContent = r.costume;
+      if (r.v > 0 && r.v === max) { const c = document.createElement("span"); c.className = "chip"; c.textContent = "Leading"; b.append(c); }
+      row.querySelector(".label > span").textContent = "worn by " + r.name;
+      row.querySelector(".count").textContent = r.v;
+      const pct = total ? Math.round(r.v / total * 100) : 0;
+      row.addEventListener("mouseenter", () => {
+        const t = document.createElement("div"); t.className = "tip";
+        t.textContent = `${r.v} ${r.v === 1 ? "vote" : "votes"} · ${pct}% of all votes`;
+        row.querySelector(".track").append(t);
+      });
+      row.addEventListener("mouseleave", () => row.querySelector(".tip")?.remove());
+      box.append(row);
+      const bar = row.querySelector(".bar");
+      requestAnimationFrame(() => { bar.style.width = max ? (r.v / max * 100) + "%" : "0"; });
     });
   }
 
