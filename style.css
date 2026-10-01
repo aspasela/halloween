@@ -98,7 +98,7 @@ button { font: inherit; cursor: pointer; border-radius: 6px; }
 .voter .who-now b { color: var(--pumpkin); }
 .linkish { background: none; border: 0; color: var(--ash); text-decoration: underline; font-size: 13px; padding: 0; }
 .linkish:hover { color: var(--pumpkin); }
-.narrow { max-width: 640px; }
+.narrow { max-width: 80vw; }
 .mine { display: grid; gap: 8px; }
 .mine-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px dashed var(--line); padding-top: 8px; font-size: 14px; }
 .mine-row span { min-width: 0; overflow-wrap: anywhere; }
