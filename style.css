@@ -44,7 +44,7 @@ h1 { font-family: var(--display); font-weight: 400; font-size: clamp(44px, 8vw, 
 label { display: grid; gap: 6px; font-size: 13px; font-weight: 500; }
 input, textarea {
   font: inherit; color: var(--bone); background: var(--night);
-  border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; width: 100%;
+  border: 1px solid var(--line); border-radius: 6px; padding: 20px 12px; width: 100%;
 }
 textarea { resize: vertical; min-height: 64px; }
 input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--pumpkin); outline-offset: 2px; }
