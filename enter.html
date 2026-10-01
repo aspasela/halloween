@@ -85,7 +85,7 @@
 
   $("entry-form").addEventListener("submit", async (ev) => {
     ev.preventDefault();
-    const name = $("f-name").value.trim(), costume = $("f-costume").value.trim(), description = $("f-desc").value.trim();
+    const name = $("f-name").value.trim(), costume = $("f-costume").value.trim(), description = ($("f-desc")?.value || "").trim();
     if (!name || !costume) { $("f-msg").textContent = "Add both your name and your costume."; return; }
     $("f-submit").disabled = true; $("f-msg").textContent = "Adding…";
     const { error } = await sb.from("entries").insert({ name, costume, description, created_by: uid });
