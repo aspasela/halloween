@@ -31,6 +31,8 @@ h1 { font-family: var(--display); font-weight: 400; font-size: 48px; line-height
 .label { min-width: 0; overflow-wrap: anywhere; }
 .label b { display: block; font-weight: 600; }
 .label span { color: var(--ash); font-size: 13px; }
+.voters { grid-column: 1 / -1; font-size: 13px; color: var(--ash); overflow-wrap: anywhere; }
+.voters b { color: var(--bone); font-weight: 600; }
 .plot { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .track { flex: 1; height: 26px; background: var(--track); border-radius: 0 4px 4px 0; position: relative; }
 .bar { height: 100%; width: 0; background: var(--pumpkin); opacity: .55; border-radius: 0 4px 4px 0; min-width: 2px; }
@@ -38,7 +40,7 @@ h1 { font-family: var(--display); font-weight: 400; font-size: 48px; line-height
 @media (prefers-reduced-motion: no-preference) { .bar { transition: width .6s ease; } }
 .count { font-size: 22px; font-weight: 700; min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
 .row.first .count { color: var(--pumpkin); }
-.chip { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; background: var(--pumpkin); color: var(--pumpkin-ink); padding: 1px 7px; border-radius: 99px; vertical-align: middle; }
+.label .chip { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; background: var(--pumpkin); color: var(--pumpkin-ink); padding: 1px 7px; border-radius: 99px; vertical-align: middle; }
 .row:hover .bar { opacity: 1; }
 .tip { position: absolute; right: 0; top: -30px; background: var(--bone); color: var(--night); font-size: 13px; padding: 3px 8px; border-radius: 4px; pointer-events: none; white-space: nowrap; }
 @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
@@ -74,11 +76,14 @@ h1 { font-family: var(--display); font-weight: 400; font-size: 48px; line-height
   async function load() {
     const [en, vo] = await Promise.all([
       sb.from("entries").select("id,name,costume,created_at"),
-      sb.from("votes").select("entry_id"),
+      sb.from("votes").select("entry_id,voter_name,updated_at"),
     ]);
     if (en.error || vo.error) { $("meta").textContent = "Couldn't load results. Reload to try again."; return; }
-    const counts = {};
-    vo.data.forEach(v => counts[v.entry_id] = (counts[v.entry_id] || 0) + 1);
+    const counts = {}, voters = {};
+    vo.data.sort((a, b) => Date.parse(a.updated_at) - Date.parse(b.updated_at)).forEach(v => {
+      counts[v.entry_id] = (counts[v.entry_id] || 0) + 1;
+      (voters[v.entry_id] = voters[v.entry_id] || []).push(v.voter_name || "Anonymous");
+    });
     const rows = en.data.map(e => ({ ...e, v: counts[e.id] || 0 }))
       .sort((a, b) => b.v - a.v || Date.parse(a.created_at) - Date.parse(b.created_at));
     const total = rows.reduce((s, r) => s + r.v, 0);
@@ -98,6 +103,11 @@ h1 { font-family: var(--display); font-weight: 400; font-size: 48px; line-height
       b.textContent = r.costume;
       if (r.v > 0 && r.v === max) { const c = document.createElement("span"); c.className = "chip"; c.textContent = "Leading"; b.append(c); }
       row.querySelector(".label > span").textContent = "worn by " + r.name;
+      const vs = voters[r.id] || [];
+      const who = document.createElement("div"); who.className = "voters";
+      if (vs.length) { who.append("Voted by "); const b = document.createElement("b"); b.textContent = vs.join(", "); who.append(b); }
+      else who.textContent = "No votes yet";
+      row.append(who);
       row.querySelector(".count").textContent = r.v;
       const pct = total ? Math.round(r.v / total * 100) : 0;
       row.addEventListener("mouseenter", () => {

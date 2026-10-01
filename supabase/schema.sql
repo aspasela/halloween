@@ -15,6 +15,7 @@ create table if not exists public.entries (
 create table if not exists public.votes (
   voter_id   uuid primary key default auth.uid(),
   entry_id   uuid not null references public.entries(id) on delete cascade,
+  voter_name text not null default '' check (char_length(voter_name) <= 60),
   updated_at timestamptz not null default now()
 );
 

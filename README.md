@@ -1,6 +1,12 @@
 # Halloween Costume Contest
 
-A small site where people add their name and costume, and visitors vote for the best one. Each visitor gets one vote and can move it. The page updates live as entries and votes come in.
+A small site for a Halloween costume contest, in three pages:
+
+- `index.html` – **Voting.** Guests enter their name, then vote for one costume (they can move their vote).
+- `enter.html` – **Enter the contest.** Contestants add their name and costume, and can remove their own entry.
+- `results.html` – **Results.** Vote totals, a bar chart with the most votes first, and who voted for each costume.
+
+The pages don't link to each other; share each address with whoever needs it. Everything updates live.
 
 It's a static site (runs on GitHub Pages) with Supabase storing entries and votes.
 
@@ -22,6 +28,8 @@ It's a static site (runs on GitHub Pages) with Supabase storing entries and vote
 
 ## Files
 
-- `index.html` – the page
+- `index.html`, `enter.html`, `results.html` – the pages
+- `style.css` – shared styles for voting and entry pages
 - `config.js` – your Supabase URL and key
-- `supabase/schema.sql` – tables and access rules
+- `supabase/schema.sql` – tables and access rules (fresh setup)
+- `supabase/add_voter_names.sql` – one-time update if you set up the database before voter names were added

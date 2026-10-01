@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enter the Costume Contest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap narrow">
+  <header>
+    <span class="eyebrow">Halloween · Best Costume</span>
+    <h1>Enter the Contest</h1>
+    <p class="lede">Add your costume to the lineup so guests can vote for it.</p>
+    <div class="status" id="status">Connecting…</div>
+  </header>
+
+  <form class="panel" id="entry-form" autocomplete="off">
+    <label for="f-name">Your name
+      <input id="f-name" maxlength="60" required placeholder="e.g. Morticia R.">
+    </label>
+    <label for="f-costume">Costume
+      <input id="f-costume" maxlength="80" required placeholder="e.g. The Headless Horseman">
+    </label>
+    <label for="f-desc">A line about it <span class="hint">(optional)</span>
+      <textarea id="f-desc" maxlength="200" placeholder="Hand-sewn cape, pumpkin carried all night."></textarea>
+    </label>
+    <button class="btn" id="f-submit" type="submit" disabled>Add my costume</button>
+    <span class="hint" id="f-msg"></span>
+  </form>
+
+  <section class="panel mine" id="mine" hidden>
+    <h2>Your entries</h2>
+    <div id="mine-list"></div>
+  </section>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const setStatus = (t, warn) => { $("status").textContent = t; $("status").classList.toggle("warn", !!warn); };
+  const cfg = window.CONTEST_CONFIG || {};
+  if (!window.supabase || !cfg.supabaseUrl || cfg.supabaseUrl.includes("YOUR-PROJECT")) {
+    setStatus("Setup needed: add your Supabase URL and key to config.js.", true); return;
+  }
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+
+  let uid = null;
+  try {
+    const { data: s } = await sb.auth.getSession();
+    if (s.session) uid = s.session.user.id;
+    else { const { data, error } = await sb.auth.signInAnonymously(); if (error) throw error; uid = data.user.id; }
+    setStatus(""); $("f-submit").disabled = false;
+  } catch (e) {
+    setStatus("Entries are off: turn on anonymous sign-ins in Supabase (Authentication → Providers).", true); return;
+  }
+
+  let pendingRemove = null;
+  async function loadMine() {
+    const { data, error } = await sb.from("entries").select("id,name,costume").eq("created_by", uid).order("created_at");
+    if (error) return;
+    $("mine").hidden = !data.length;
+    const box = $("mine-list"); box.replaceChildren();
+    data.forEach(e => {
+      const row = document.createElement("div"); row.className = "mine-row";
+      const label = document.createElement("span"); label.textContent = `${e.costume} · ${e.name}`;
+      row.appendChild(label);
+      if (pendingRemove === e.id) {
+        const c = document.createElement("span"); c.className = "confirm";
+        const yes = document.createElement("button"); yes.type = "button"; yes.className = "yes"; yes.textContent = "Remove";
+        const no = document.createElement("button"); no.type = "button"; no.textContent = "Keep";
+        yes.onclick = async () => { pendingRemove = null; await sb.from("entries").delete().eq("id", e.id); loadMine(); };
+        no.onclick = () => { pendingRemove = null; loadMine(); };
+        c.append(yes, no); row.appendChild(c);
+      } else {
+        const rm = document.createElement("button"); rm.type = "button"; rm.className = "linkish"; rm.textContent = "Remove";
+        rm.onclick = () => { pendingRemove = e.id; loadMine(); };
+        row.appendChild(rm);
+      }
+      box.appendChild(row);
+    });
+  }
+  loadMine();
+
+  $("entry-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const name = $("f-name").value.trim(), costume = $("f-costume").value.trim(), description = $("f-desc").value.trim();
+    if (!name || !costume) { $("f-msg").textContent = "Add both your name and your costume."; return; }
+    $("f-submit").disabled = true; $("f-msg").textContent = "Adding…";
+    const { error } = await sb.from("entries").insert({ name, costume, description, created_by: uid });
+    if (error) $("f-msg").textContent = "Couldn't add your entry. Try again.";
+    else { $("entry-form").reset(); $("f-msg").textContent = "You're in the lineup!"; }
+    $("f-submit").disabled = false;
+    loadMine();
+  });
+})();
+</script>
+</body>
+</html>
